@@ -1,0 +1,64 @@
+{% extends "dalton/layout.html" %}
+{% block body %}
+<script type='text/javascript'>
+	var countdown = 1;
+    var doneDone = false;
+    $(document).ready(function() {
+        $.ajaxSetup({ cache: false });
+
+        (function update() {
+            $.get('/dalton/controller_api/job_status/{{job_id}}', function(data){
+               if (data.indexOf("Click here") != -1) {
+                    {# job done #}
+                    if (data.indexOf("ERROR") != -1) {
+                        $('#job-status').html(data);
+                        $('#alt-message').html('(redirecting in ' + countdown + ' seconds)');
+                        countdown--;
+                        if (countdown <= 0) {
+                            doneDone = true;
+                            window.location = window.location.href;
+                        }
+                    } else {
+                        <!-- job done, no error, redirect immediately to results page -->
+                        doneDone = true;
+                        $('#job-status').html("Redirecting...");
+                        window.location = window.location.href;
+                    }
+                    return;
+                } else {
+                    $('#job-status').html(data);
+                }
+            }).then(function() {
+                if (!Boolean(doneDone)) {
+                   setTimeout(update, 400);
+                }
+            });
+        })();
+    });
+</script>
+    <div class="row">
+        <div class="span9">
+            <h2>
+		Status for job {{job_id}}
+        {% set tlist = tech.split('/') %}
+        {% if tlist|length > 1 %}
+            {% if tlist[1].startswith("rust_") %}
+                {{tlist[0]|title}} {{tlist[1][5:]}} ({% if tlist|length > 2 %}{{tlist[2]}} - {% endif %}with Rust support)
+            {% else %}
+                {{tlist[0]|title}} {{tlist[1]}}{% if tlist|length > 2 %} ({{tlist[2]}}){% endif %}
+            {% endif %}
+        {% else %}
+            ({{tech|title}})
+        {% endif %}        
+	    </h2>
+        <p>Tests have been queued. You can track the progress below:</p>
+        <h3><center><span id='job-status'>getting status ... </span></center></h3>
+	    <h4><center><span id='alt-message'></span></center></h4>
+        <p><b>Links:</b></p>
+        <ul>
+	    <li><a href="/dalton/sensor_api/get_job/{{job_id}}">Download Job Zipfile</a> (includes pcap(s), rules, and config)</li>
+        <li><a href="/dalton/job/{{job_id}}">Results Page</a></li>
+        </ul>
+        </div>
+    </div><!--/row-->
+{% endblock %}

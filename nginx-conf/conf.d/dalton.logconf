@@ -1,0 +1,15 @@
+log_format my_format '$http_host '
+                  '$remote_addr [$time_iso8601] '
+                  '"$request" $status $body_bytes_sent '
+                  '"$http_referer" "$http_user_agent" '
+                  '$request_time '
+                  '$upstream_response_time';
+
+map $request_uri $logrequest {
+    # by default each agent polls every second for jobs; don't log all this
+    ~^/dalton/sensor_api/request_job.*SENSOR_UID= 0;
+    # ignore ajax calls waiting for job to be done
+    ~^/dalton/controller_api/job_status/ 0;
+    # add other paths here if desired
+    default 1;
+}
